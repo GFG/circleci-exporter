@@ -34,41 +34,75 @@ def get_metrics(project):
     return project_summary[0] if len(project_summary) > 0 else None
 
 def add_last_build_date(metric, project):
-    if project["start_time"] is not None:
-        value = convert_to_timestamp(project["start_time"])
-        metric.labels(
-            project_name      = '{}'.format(project["reponame"]),
-            branch            = '{}'.format(project['branch']),
-            started_by        = '{}'.format(project["user"]["login"])
-        ).set(value)
+    if project["start_time"] is None:
+        return None
+
+    value = convert_to_timestamp(project["start_time"])
+    
+    metric_copy = {k:v for k,v in metric._metrics.items() if v}
+    for detail, object in metric_copy.items():
+        # ignore when comparing different projects
+        if detail[0] != project["reponame"]:
+            continue
+        # detail[2] == started_by label of metric
+        if detail[2] != project["user"]["login"]:
+            metric.remove(*detail)
+
+    metric.labels(
+        project_name      = '{}'.format(project["reponame"]),
+        branch            = '{}'.format(project['branch']),
+        started_by        = '{}'.format(project["user"]["login"])
+    ).set(value)
 
 def add_last_build_status(metric, project):
-    if project["status"] is not None:
-        value = {
-            'retried':             12,
-            'canceled':            11,
-            'infrastructure_fail': 10,
-            'timedout':             9,
-            'not_run':              8,
-            'running':              7,
-            'queued':               6,
-            'scheduled':            5,
-            'not_running':          4,
-            'no_tests':             3,
-            'fixed':                2,
-            'failed':               1,
-            'success':              0
-        }
-        value = value.get(project["status"])
-        metric.labels(
-            project_name      = '{}'.format(project["reponame"]),
-            branch            = '{}'.format(project['branch']),
-            started_by        = '{}'.format(project["user"]["login"])
-        ).set(value)
+    if project["status"] is None:
+        return None
+
+    value = {
+        'retried':             12,
+        'canceled':            11,
+        'infrastructure_fail': 10,
+        'timedout':             9,
+        'not_run':              8,
+        'running':              7,
+        'queued':               6,
+        'scheduled':            5,
+        'not_running':          4,
+        'no_tests':             3,
+        'fixed':                2,
+        'failed':               1,
+        'success':              0
+    }
+    value = value.get(project["status"])
+
+    metric_copy = {k:v for k,v in metric._metrics.items() if v}
+    for detail, object in metric_copy.items():
+        # ignore when comparing different projects
+        if detail[0] != project["reponame"]:
+            continue
+        # detail[2] == started_by label of metric
+        if detail[2] != project["user"]["login"]:
+            metric.remove(*detail)
+
+    metric.labels(
+        project_name      = '{}'.format(project["reponame"]),
+        branch            = '{}'.format(project['branch']),
+        started_by        = '{}'.format(project["user"]["login"])
+    ).set(value)
 
 def add_last_build_time_millis(metric, project):
     if project["build_time_millis"]:
         value = project['build_time_millis']
+
+        metric_copy = {k:v for k,v in metric._metrics.items() if v}
+        for detail, object in metric_copy.items():
+            # ignore when comparing different projects
+            if detail[0] != project["reponame"]:
+                continue
+            # detail[2] == started_by label of metric
+            if detail[2] != project["user"]["login"]:
+                metric.remove(*detail)
+
         metric.labels(
             project_name      = '{}'.format(project["reponame"]),
             branch            = '{}'.format(project['branch']),
@@ -78,6 +112,16 @@ def add_last_build_time_millis(metric, project):
 def add_last_build_number(metric, project):
     if project["build_num"]:
         value = project['build_num']
+        
+        metric_copy = {k:v for k,v in metric._metrics.items() if v}
+        for detail, object in metric_copy.items():
+            # ignore when comparing different projects
+            if detail[0] != project["reponame"]:
+                continue
+            # detail[2] == started_by label of metric
+            if detail[2] != project["user"]["login"]:
+                metric.remove(*detail)
+
         metric.labels(
             project_name      = '{}'.format(project["reponame"]),
             branch            = '{}'.format(project['branch']),
@@ -87,6 +131,8 @@ def add_last_build_number(metric, project):
 def generate_metrics(projects):
     for project in projects:
         project_summary = get_metrics(project)
+        if project_summary is None: 
+            continue
         add_last_build_date(last_build_date, project_summary)
         add_last_build_number(last_build_number, project_summary)
         add_last_build_time_millis(last_build_time_millis, project_summary)
