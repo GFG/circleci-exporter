@@ -16,6 +16,8 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        vault.security.banzaicloud.io/vault-role: default
       labels:
         app: circleci-exporter
         product: platform
@@ -24,10 +26,7 @@ spec:
       containers:
       - env:
         - name: CIRCLE_TOKEN
-          valueFrom:
-            secretKeyRef:
-              key: CIRCLE_TOKEN
-              name: circleci-exporter
+          value: vault:squad-platform/kubernetes/<ENV>/circleci-exporter#CIRCLE_TOKEN
         name: circleci-exporter
         image: vivareal/circleci-exporter:v0.1
         imagePullPolicy: IfNotPresent
